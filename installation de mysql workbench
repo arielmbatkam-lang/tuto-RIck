@@ -1,0 +1,285 @@
+# Installer MySQL Server et MySQL Workbench sur Fedora
+
+Guide pas à pas, testé sur **Fedora 44** (MySQL Server 8.4, MySQL Workbench 8.0.36 en Snap).
+Il documente le chemin qui fonctionne, ainsi que les erreurs rencontrées en route et leur correction.
+
+## Sommaire
+
+1. [Prérequis](#1-prérequis)
+2. [Retirer MariaDB (si installé)](#2-retirer-mariadb-si-installé)
+3. [Installer MySQL Server](#3-installer-mysql-server)
+4. [Créer un utilisateur dédié](#4-créer-un-utilisateur-dédié)
+5. [Installer MySQL Workbench](#5-installer-mysql-workbench)
+6. [Créer la connexion dans Workbench](#6-créer-la-connexion-dans-workbench)
+7. [Exporter une base de données](#7-exporter-une-base-de-données)
+8. [Dépannage](#8-dépannage)
+
+---
+
+## 1. Prérequis
+
+- Fedora Workstation avec un accès `sudo`
+- Une connexion internet
+- `snap` installé (voir [l'étape 5](#5-installer-mysql-workbench))
+
+---
+
+## 2. Retirer MariaDB (si installé)
+
+Sous Fedora, MariaDB et MySQL Server sont en conflit : ils utilisent le même port (`3306`) et le même dossier de données (`/var/lib/mysql`).
+Si MariaDB est déjà installé, retirez-le d'abord.
+
+```bash
+sudo systemctl disable --now mariadb
+sudo dnf remove mariadb-server
+```
+
+Mettez de côté l'ancien dossier de données, puis recréez un dossier vide avec les bons droits :
+
+```bash
+sudo mv /var/lib/mysql /var/lib/mysql.mariadb.bak
+sudo mkdir /var/lib/mysql
+sudo chown mysql:mysql /var/lib/mysql
+sudo chmod 755 /var/lib/mysql
+sudo restorecon -R /var/lib/mysql
+```
+
+> Le dossier doit **exister et être vide** : MySQL y crée sa base lors du premier démarrage.
+> S'il n'existe pas, le service refuse de démarrer.
+
+---
+
+## 3. Installer MySQL Server
+
+Le paquet s'appelle **`mysql-server`** et se trouve dans les dépôts Fedora par défaut.
+
+```bash
+sudo dnf install mysql-server
+sudo systemctl enable --now mysqld
+systemctl status mysqld --no-pager
+```
+
+Le statut doit afficher `active (running)`.
+
+> **Piège :** `sudo dnf install mysqld` réinstalle **MariaDB** (le nom `mysqld` pointe vers `mariadb-server`).
+> Le paquet `community-mysql-server` n'existe plus sous Fedora 44.
+
+---
+
+## 4. Créer un utilisateur dédié
+
+Le paquet Fedora ne génère pas de mot de passe temporaire pour `root`. La connexion se fait avec `sudo` :
+
+```bash
+sudo mysql
+```
+
+Puis, dans le terminal MySQL :
+
+```sql
+CREATE USER 'monuser'@'localhost' IDENTIFIED BY 'VotreMotDePasse';
+GRANT ALL PRIVILEGES ON *.* TO 'monuser'@'localhost' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+Remplacez `VotreMotDePasse` par un vrai mot de passe. Testez ensuite :
+
+```bash
+mysql -u monuser -p
+```
+
+Si vous obtenez le prompt `mysql>`, le serveur est prêt.
+
+> `ALL PRIVILEGES ON *.*` convient pour un laboratoire personnel.
+> En production, limitez les droits à une base précise.
+
+---
+
+## 5. Installer MySQL Workbench
+
+MySQL Workbench n'est **pas** dans les dépôts Fedora, et le dépôt RPM d'Oracle ne propose pas de paquet pour Fedora 44
+(le dossier `fc/44` n'existe pas, `dnf` répond `No match for argument: mysql-workbench-community`).
+La méthode qui fonctionne est le **Snap**.
+
+```bash
+sudo snap install mysql-workbench-community
+```
+
+Lancez-le depuis le menu des applications (« MySQL Workbench ») ou avec :
+
+```bash
+snap run mysql-workbench-community
+```
+
+Optionnel : autoriser l'accès au gestionnaire de mots de passe.
+
+```bash
+sudo snap connect mysql-workbench-community:password-manager-service
+```
+
+> Si `snap` n'est pas installé : `sudo dnf install snapd`, puis `sudo ln -s /var/lib/snapd/snap /snap`
+> et redémarrez la session.
+
+---
+
+## 6. Créer la connexion dans Workbench
+
+1. Cliquez sur le **+** à côté de **MySQL Connections**.
+2. Renseignez :
+
+| Champ | Valeur |
+|---|---|
+| Connection Name | `local` |
+| Connection Method | `Standard (TCP/IP)` |
+| Hostname | `127.0.0.1` |
+| Port | `3306` |
+| Username | `monuser` |
+
+3. Laissez **Password** vide et cliquez sur **Test Connection**.
+4. Saisissez le mot de passe de `monuser` quand il est demandé.
+5. Si une fenêtre « Connection Warning » apparaît, cliquez sur **Continue Anyway** (voir [dépannage](#avertissement-incompatiblenonstandard-server-version)).
+6. Cliquez sur **OK**, puis double-cliquez sur la connexion pour l'ouvrir.
+
+Pour vérifier, exécutez dans l'éditeur SQL (l'éclair exécute la requête) :
+
+```sql
+CREATE DATABASE test_labo;
+SHOW DATABASES;
+```
+
+> Utilisez `127.0.0.1` plutôt que `localhost` avec la version Snap : la résolution du nom peut échouer dans le conteneur.
+
+---
+
+## 7. Exporter une base de données
+
+### Avec Workbench
+
+1. Menu **Server > Data Export**.
+2. Cochez la base à exporter (par exemple `blog`), ce qui sélectionne toutes ses tables.
+3. Choisissez **Dump Structure and Data**.
+4. Sélectionnez **Export to Self-Contained File** pour obtenir un seul fichier `.sql`.
+5. Cochez **Include Create Schema** et **Create Dump in a Single Transaction**.
+6. Cliquez sur **Start Export** et suivez l'onglet **Export Progress**.
+
+> Le sélecteur de fichiers de la version Snap s'ouvre parfois vide.
+> Tapez le chemin à la main dans le champ (`/home/<utilisateur>/Documents/blog.sql`),
+> ou laissez le dossier par défaut `~/snap/mysql-workbench-community/<n>/dumps/` et copiez le fichier ensuite.
+
+### En ligne de commande
+
+```bash
+mysqldump -u monuser -p --databases blog > ~/Documents/blog.sql
+```
+
+### Vérifier l'export
+
+```bash
+ls -lh ~/Documents/blog.sql
+head -40 ~/Documents/blog.sql
+grep -c "INSERT INTO" ~/Documents/blog.sql
+```
+
+Le fichier doit contenir des `CREATE TABLE` et au moins un `INSERT INTO`.
+
+### Réimporter
+
+```bash
+mysql -u monuser -p < ~/Documents/blog.sql
+```
+
+---
+
+## 8. Dépannage
+
+### `Failed to execute child process "dbus-launch" (No such file or directory)`
+
+Workbench cherche à lire ou enregistrer le mot de passe dans le trousseau et ne trouve pas `dbus-launch`.
+Avec la version Snap, installer `dbus-x11` sur le système **ne corrige pas** le problème, car le Snap tourne dans un bac à sable.
+
+L'erreur n'empêche pas la connexion :
+
+1. Ne cliquez pas sur **Store in Keychain**.
+2. Cliquez sur **Close** une seule fois dans le message d'erreur et attendez la fenêtre de mot de passe.
+3. Saisissez le mot de passe et validez avec **OK** (ne fermez pas la fenêtre, cela produit `Canceled by user`).
+
+Le mot de passe n'est alors pas mémorisé : il faut le retaper à chaque connexion.
+
+### `Failed to Connect to MySQL ... Canceled by user`
+
+La fenêtre de saisie du mot de passe a été fermée ou annulée. Relancez **Test Connection** et validez avec **OK**.
+
+### Avertissement « Incompatible/nonstandard server version »
+
+Workbench 8.0.36 est testé pour MySQL 5.6, 5.7 et 8.0, alors que le serveur est en 8.4.
+Cliquez sur **Continue Anyway** : les fonctions courantes (tables, requêtes, export) fonctionnent.
+Quelques outils avancés peuvent se comporter différemment.
+
+### `ERROR 1045 (28000): Access denied for user ... (using password: NO)`
+
+La commande a été lancée sans `-p`, ou le mot de passe est faux.
+Ajoutez `-p` pour être invité à le saisir : `mysql -u monuser -p`.
+
+### `ERROR 1698 (28000): Access denied for user '<utilisateur>'@'localhost'`
+
+L'utilisateur Linux n'existe pas côté MySQL. Précisez l'utilisateur MySQL avec `-u monuser`.
+
+### `mysqld.service` refuse de démarrer : `Make sure the /var/lib/mysql is empty`
+
+Le dossier de données contient déjà des fichiers. Mettez-le de côté et recréez-le vide :
+
+```bash
+sudo systemctl stop mysqld
+sudo mv /var/lib/mysql /var/lib/mysql.old
+sudo mkdir /var/lib/mysql
+sudo chown mysql:mysql /var/lib/mysql
+sudo chmod 755 /var/lib/mysql
+sudo restorecon -R /var/lib/mysql
+sudo systemctl start mysqld
+```
+
+### `Unit mysqld.service does not exist`
+
+Le serveur n'est pas installé. Vérifiez avec `rpm -q mysql-server` et installez-le avec `sudo dnf install mysql-server`.
+
+### `Can't connect to local server through socket`
+
+Le service ne tourne pas. Démarrez-le et lisez les journaux :
+
+```bash
+sudo systemctl start mysqld
+journalctl -u mysqld -n 30 --no-pager
+```
+
+### `Curl error (56): Connection reset by peer` pendant `dnf`
+
+Incident réseau ou miroir passager. Relancez la commande, ou nettoyez le cache :
+
+```bash
+sudo dnf clean all
+```
+
+---
+
+## Récapitulatif des commandes
+
+```bash
+# Serveur
+sudo dnf install mysql-server
+sudo systemctl enable --now mysqld
+
+# Utilisateur
+sudo mysql
+#   CREATE USER 'monuser'@'localhost' IDENTIFIED BY 'VotreMotDePasse';
+#   GRANT ALL PRIVILEGES ON *.* TO 'monuser'@'localhost' WITH GRANT OPTION;
+#   FLUSH PRIVILEGES;
+
+# Workbench
+sudo snap install mysql-workbench-community
+snap run mysql-workbench-community
+```
+
+## Licence
+
+Libre d'utilisation et de modification.
