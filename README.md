@@ -10,7 +10,8 @@ Bienvenue sur mon espace de documentation technique ! Vous trouverez ici l'ensem
 | :--- | :--- | :--- | :--- |
 | **Base de données** | **Installer et configurer MySQL Workbench & MariaDB sur Fedora** | Guide complet pour installer MariaDB, configurer l'accès root et utiliser MySQL Workbench sur Fedora. | [Voir le tuto](https://github.com/arielmbatkam-lang/mysql-fedora-guide/blob/main/installation%20de%20mysql%20workbench) |
 | **seveur dhcp* | *configuration d un serveur dhcp sur debian** | Astuces et configurations pour optimiser son environnement Fedora. | [voir le tuto](https://github.com/arielmbatkam-lang/tuto-RIck/blob/main/github_readme_guide.md) |
-| ** le wifi et proxmox ** | *Configuration d'une connection wifi sur proxmox* | guides sur la configuration de la carte resau wifi  | *En cours* |
+| ** le wifi et proxmox ** | *Configuration d'une connection wifi sur proxmox* | guides sur la configuration de la carte resau wifi  | [voit tuto](https://github.com/arielmbatkam-lang/tuto-RIck/blob/main/proxmox-wifi.md) |
+| ** nat sur proxmox** | *configuration d'une carte nat sur proxmox* | --------------------------------------------- | *[voit tuto](https://github.com/arielmbatkam-lang/tuto-RIck/blob/main/nat-proxmox.md)* |
 
 | ** ------------** | *--------------* | --------------------------------------------- | *En cours* |
 ---
