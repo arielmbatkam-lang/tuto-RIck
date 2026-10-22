@@ -1,10 +1,9 @@
-# 🚀 Hub de Tutoriels & Labs - Linux & DevOps
+#  Hub de Tutoriels & Labs - Linux & DevOps
 
 Bienvenue sur mon espace de documentation technique ! Vous trouverez ici l'ensemble de mes tutoriels, configurations et résolutions de problèmes liés au système, aux réseaux, à la cybersécurité et aux bases de données.
 
 ---
-
-## 📚 Sommaire des Tutoriels
+##  Sommaire des Tutoriels
 
 | Catégorie | Titre du Tutoriel | Description | Lien |
 | :--- | :--- | :--- | :--- |
@@ -13,14 +12,10 @@ Bienvenue sur mon espace de documentation technique ! Vous trouverez ici l'ensem
 | ** le wifi et proxmox ** | *Configuration d'une connection wifi sur proxmox* | guides sur la configuration de la carte resau wifi  | [voit tuto](https://github.com/arielmbatkam-lang/tuto-RIck/blob/main/proxmox-wifi.md) |
 | ** nat sur proxmox** | *configuration d'une carte nat sur proxmox* | --------------------------------------------- | *[voit tuto](https://github.com/arielmbatkam-lang/tuto-RIck/blob/main/nat-proxmox.md)* |
 | ** tailscale-proxmox ** | *configuration d'un conteneur tailscale sur proxmox * | --------------------------------------------- | * [voir tuto](https://github.com/arielmbatkam-lang/tuto-RIck/blob/main/tailscale-proxmox-lxc.md)|
-
 | ** creation d'un serveur de fichier sur debian ** | *--------------* | --------------------------------------------- | [voir tuto](https://github.com/arielmbatkam-lang/tuto-RIck/blob/main/tuto-serveur-fichiers-nfs.md)|
 
-
-## 🛠️ Mon Environnement de Travail
+---
+##  Mon Environnement de Travail
 * **OS Principal :** Fedora Linux (Workstation)
 * **Virtualisation & Labs :** Proxmox VE, VMware Workstation
 * **Outils :** Git, Bash, VS Code, DBeaver / MySQL Workbench
-
----
-*Maintenu avec ❤️ par Rick Ariel MBATKAM MBATCHOU.*
