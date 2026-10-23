@@ -44,7 +44,7 @@ Saisissez dans l'ordre :
 | `Entrée` | Dernier secteur par défaut (tout le disque) |
 | `w` | Écrire les changements et quitter |
 
-> ⚠️ Attention : cette opération modifie la table de partitions. Vérifiez bien le nom du disque avant de continuer.
+>  Attention : cette opération modifie la table de partitions. Vérifiez bien le nom du disque avant de continuer.
 
 ### 3. Formater la partition
 
@@ -72,7 +72,7 @@ Pour voir tous les systèmes de fichiers montés :
 findmnt
 ```
 
-> 💡 Ce montage est temporaire : il disparaît au redémarrage. Pour le rendre permanent, ajoutez une ligne dans `/etc/fstab` :
+>  Ce montage est temporaire : il disparaît au redémarrage. Pour le rendre permanent, ajoutez une ligne dans `/etc/fstab` :
 > ```
 > /dev/sdb1  /mnt/disquedur  ext4  defaults  0  2
 > ```
@@ -180,7 +180,7 @@ Testez en créant un fichier côté client, puis vérifiez sa présence côté s
 touch /mnt/partage/test.txt
 ```
 
-> 💡 Pour un montage permanent côté client, ajoutez dans `/etc/fstab` :
+>  Pour un montage permanent côté client, ajoutez dans `/etc/fstab` :
 > ```
 > IP_DU_SERVEUR:/mnt/disquedur/partage  /mnt/partage  nfs  defaults  0  0
 > ```
