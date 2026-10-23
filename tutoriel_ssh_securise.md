@@ -109,7 +109,7 @@ Il faut maintenant copier votre clé publique sur le serveur pour qu'il vous rec
    chmod 600 ~/.ssh/authorized_keys
    ```
 
-### 🔥 SUPER ALTERNATIVE (Hautement recommandée - remplace toute l'étape 4) :
+### SUPER ALTERNATIVE (Hautement recommandée - remplace toute l'étape 4) :
 Plutôt que de tout faire manuellement, utilisez cet utilitaire natif qui copie la clé, crée les dossiers et applique les bons droits (700/600) automatiquement :
 ```bash
 ssh-copy-id -i ~/.ssh/id_ed25519.pub utilisateur@adresse_ip_du_serveur
