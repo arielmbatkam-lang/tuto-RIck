@@ -13,6 +13,7 @@ Bienvenue sur mon espace de documentation technique ! Vous trouverez ici l'ensem
 | **nat sur proxmox** | *configuration d'une carte nat sur proxmox* | --------------------------------------------- | *[voit tuto](https://github.com/arielmbatkam-lang/tuto-RIck/blob/main/nat-proxmox.md)* |
 | **tailscale-proxmox** | *configuration d'un conteneur tailscale sur proxmox * | --------------------------------------------- | * [voir tuto](https://github.com/arielmbatkam-lang/tuto-RIck/blob/main/tailscale-proxmox-lxc.md)|
 | **serveur de fichier** | *creation d'un serveur de fichier sur debian* | --------------------------------------------- |  * [voir tuto](https://github.com/arielmbatkam-lang/tuto-RIck/blob/main/tuto-serveur-fichiers-nfs.md)|
+| **special windows serveur** | **configuration des services windows serveur** | ici je parle la configuration des services de windows server que on retrouve le plus dans les entreprises |  * [en cours]
 
 ---
 ##  Mon Environnement de Travail
