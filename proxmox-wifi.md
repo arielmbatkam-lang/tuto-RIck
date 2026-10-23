@@ -9,7 +9,7 @@
 - Une carte WiFi reconnue par le noyau Linux.
 - Un réseau WiFi en **WPA2-Personal** (WPA2-PSK).
 
-> ⚠️ **Limite importante** : une carte WiFi en mode client ne peut pas être ajoutée à un bridge Linux (`vmbr0`). Les VM ne pourront donc pas être "bridgées" directement sur le WiFi. Il faut utiliser du **NAT** ou du **routage** pour leur donner accès au réseau.
+>  **Limite importante** : une carte WiFi en mode client ne peut pas être ajoutée à un bridge Linux (`vmbr0`). Les VM ne pourront donc pas être "bridgées" directement sur le WiFi. Il faut utiliser du **NAT** ou du **routage** pour leur donner accès au réseau.
 
 ---
 
@@ -89,8 +89,8 @@ Cette commande liste les interfaces et leur état :
 
 | État | Signification |
 |---|---|
-| `disconnected` | L'interface est gérée par NetworkManager, mais pas connectée. ✅ C'est ce qu'on veut. |
-| `unmanaged` | L'interface est ignorée par NetworkManager (souvent car elle est déclarée dans `/etc/network/interfaces`). ❌ À corriger. |
+| `disconnected` | L'interface est gérée par NetworkManager, mais pas connectée.  C'est ce qu'on veut. |
+| `unmanaged` | L'interface est ignorée par NetworkManager (souvent car elle est déclarée dans `/etc/network/interfaces`).  À corriger. |
 | `connected` | L'interface est connectée. |
 
 ### Si la carte WiFi est en `unmanaged`
@@ -103,7 +103,7 @@ sudo nano /etc/network/interfaces
 
 Si l'interface WiFi y est déclarée, **mettre ses lignes en commentaire** avec `#`.
 
-> ⚠️ Ne commentez **pas** les lignes de `lo`, de l'interface Ethernet ni du bridge `vmbr0` : ce sont elles qui assurent l'accès à l'interface web de Proxmox. Faites une sauvegarde avant : `sudo cp /etc/network/interfaces /etc/network/interfaces.bak`.
+>  Ne commentez **pas** les lignes de `lo`, de l'interface Ethernet ni du bridge `vmbr0` : ce sont elles qui assurent l'accès à l'interface web de Proxmox. Faites une sauvegarde avant : `sudo cp /etc/network/interfaces /etc/network/interfaces.bak`.
 
 **b) Vérifier `NetworkManager.conf`**
 
@@ -120,7 +120,7 @@ Dans la section `[ifupdown]`, mettre :
 managed=true
 ```
 
-> ⚠️ Avec `managed=true`, NetworkManager peut aussi prendre en charge d'autres interfaces déclarées dans `/etc/network/interfaces` et perturber la configuration réseau de Proxmox. Si l'interface WiFi n'est plus listée dans `/etc/network/interfaces`, essayez d'abord **sans** modifier cette option, et ne l'activez que si l'interface reste `unmanaged`.
+>  Avec `managed=true`, NetworkManager peut aussi prendre en charge d'autres interfaces déclarées dans `/etc/network/interfaces` et perturber la configuration réseau de Proxmox. Si l'interface WiFi n'est plus listée dans `/etc/network/interfaces`, essayez d'abord **sans** modifier cette option, et ne l'activez que si l'interface reste `unmanaged`.
 
 **c) Redémarrer le service**
 
@@ -167,7 +167,7 @@ sudo nmcli device wifi connect "NOM_DU_WIFI" password "MOT_DE_PASSE" ifname NOM_
 | `password "..."` | Clé WiFi. |
 | `ifname ...` | (Optionnel) Interface à utiliser, utile s'il y a plusieurs cartes WiFi. |
 
-> 🔐 Le réseau WiFi doit être en **WPA2-Personal** (réglable dans l'interface de votre box). Les modes WPA3 seul ou "Enterprise" peuvent nécessiter une configuration supplémentaire.
+>  Le réseau WiFi doit être en **WPA2-Personal** (réglable dans l'interface de votre box). Les modes WPA3 seul ou "Enterprise" peuvent nécessiter une configuration supplémentaire.
 
 La connexion est enregistrée et se rétablit automatiquement au redémarrage (`autoconnect`).
 
@@ -220,7 +220,7 @@ sudo ip route del default
 - `ip route` : manipule la table de routage.
 - `del default` : supprime la route par défaut (`0.0.0.0/0`), c'est-à-dire la passerelle vers Internet.
 
-> ⚠️ Si vous êtes connecté en SSH via le câble, supprimer cette route **coupe votre session**. Faites cette manipulation depuis la console locale, ou via le WiFi.
+>  Si vous êtes connecté en SSH via le câble, supprimer cette route **coupe votre session**. Faites cette manipulation depuis la console locale, ou via le WiFi.
 
 **Ajouter la route par défaut via le WiFi :**
 
@@ -240,7 +240,7 @@ La passerelle s'obtient avec `ip route` (ligne `default via ...`) ou :
 nmcli device show NOM_INTERFACE_WIFI | grep IP4.GATEWAY
 ```
 
-> ⚠️ Ces commandes `ip route` ne sont **pas persistantes** : elles disparaissent au redémarrage.
+> Ces commandes `ip route` ne sont **pas persistantes** : elles disparaissent au redémarrage.
 
 ### Rendre la priorité du WiFi persistante (optionnel)
 
