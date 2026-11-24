@@ -1,0 +1,166 @@
+# Proxmox : sortie Internet par le Wi-Fi + accès distant Tailscale
+
+Date : 24/11/2026
+
+## 1. Objectif
+
+- Toutes les machines du labo (VM, CT, PC en câble) accèdent à Internet via le Wi-Fi de l'hôte Proxmox.
+- Tailscale est installé sur l'hôte et sort lui aussi par le Wi-Fi.
+- L'accès à distance se fait depuis n'importe où via Tailscale.
+
+## 2. Architecture
+
+```
+Machines (VM / CT / PC)  ->  vmbr0 (192.168.137.0/24)  ->  hôte pve (192.168.137.1)
+   ->  NAT (MASQUERADE)  ->  wlp1s0 (172.20.10.3/28)  ->  iPhone (172.20.10.1)  ->  Internet
+```
+
+- Le Wi-Fi est le partage de connexion de l'iPhone.
+- L'hôte `192.168.137.1` est la passerelle de tout le réseau `vmbr0`.
+- Un Wi-Fi client ne peut pas être ajouté à un bridge : on utilise donc le NAT.
+- Les VLANs (`vmbr1`) passent par OPNsense, dont la WAN est sur `vmbr0`.
+
+## 3. Ce qui a marché
+
+| Élément | Commande de vérification | Résultat |
+|---|---|---|
+| Internet sur l'hôte | `ping -c3 8.8.8.8` et `ping -c3 google.com` | OK |
+| Bridge `vmbr0` | `ip -br a show vmbr0` | UP |
+| Pare-feu OPNsense coupé | `pfctl -d` puis `pfctl -s info \| head -n 3` | `Status: Disabled` |
+| Dépôt Tailscale ajouté | `curl -fsSL https://tailscale.com/install.sh \| sh` | Dépôt ajouté |
+
+Adresse WAN d'OPNsense relevée : `192.168.137.5` (DHCP).
+
+## 4. Ce qui a mal tourné
+
+- `ifreload -a` fait à chaud a détaché les VM et CT de `vmbr0`. Il faut **redémarrer l'hôte** pour appliquer un changement de bridge.
+- Le CT Tailscale (101) s'est retrouvé sans réseau, donc déconnecté.
+- Les pings vers `.1` / `.2` depuis l'hôte ne prouvent rien : ce sont ses propres adresses.
+- `apt-get update` échoue avec `401 Unauthorized` : les dépôts Proxmox enterprise sont réservés aux abonnements payants. Le script Tailscale s'est arrêté à cause de ça.
+- Toutes les VM et tous les CT ont été supprimés pour repartir de zéro.
+
+## 5. Fichier réseau final `/etc/network/interfaces`
+
+```
+auto lo
+iface lo inet loopback
+
+auto wlp1s0
+iface wlp1s0 inet dhcp
+        wpa-conf /etc/wpa_supplicant/wpa_supplicant-wlp1s0.conf
+        post-up iptables -t nat -A POSTROUTING -s 192.168.137.0/24 -o wlp1s0 -j MASQUERADE
+        post-down iptables -t nat -D POSTROUTING -s 192.168.137.0/24 -o wlp1s0 -j MASQUERADE
+
+iface enp0s31f6 inet manual
+
+auto vmbr0
+iface vmbr0 inet static
+        address 192.168.137.1/24
+        bridge-ports enp0s31f6
+        bridge-stp off
+        bridge-fd 0
+        bridge-vlan-aware yes
+        bridge-vids 2-4094
+
+auto vmbr1
+iface vmbr1 inet manual
+        bridge-ports none
+        bridge-stp off
+        bridge-fd 0
+        bridge-vlan-aware yes
+        bridge-vids 2-4094
+```
+
+Points clés :
+
+- Un seul bloc `wlp1s0`, sans `metric`.
+- Pas de `gateway` sur `vmbr0` : la route par défaut passe par le Wi-Fi.
+- Mets `bridge-ports none` si tu ne veux pas d'Ethernet sur le bridge. Attention : un autre appareil en `192.168.137.1` sur le câble provoquerait un conflit d'IP.
+
+## 6. Activer le routage et appliquer
+
+```
+echo "net.ipv4.ip_forward=1" > /etc/sysctl.d/99-forward.conf
+reboot
+```
+
+Vérifications après le redémarrage :
+
+```
+ip -br a
+ip route                                  # une seule route : default via 172.20.10.1 dev wlp1s0
+cat /proc/sys/net/ipv4/ip_forward         # doit afficher 1
+iptables -t nat -L POSTROUTING -n -v      # règle MASQUERADE présente
+ping -c3 8.8.8.8
+```
+
+## 7. Installer Tailscale sur l'hôte
+
+Désactiver les dépôts enterprise (sinon `apt-get update` échoue) :
+
+```
+sed -i 's/^deb/#deb/' /etc/apt/sources.list.d/pve-enterprise.list
+sed -i 's/^deb/#deb/' /etc/apt/sources.list.d/ceph.list
+```
+
+Installer et vérifier :
+
+```
+apt-get update
+apt-get install -y tailscale
+tailscale version
+systemctl status tailscaled
+```
+
+Connecter l'hôte et annoncer le sous-réseau :
+
+```
+tailscale up --advertise-routes=192.168.137.0/24 --accept-dns=false
+tailscale status
+tailscale ip -4
+```
+
+Ouvre le lien `https://login.tailscale.com/a/...` affiché pour te connecter.
+
+## 8. Console Tailscale (login.tailscale.com > Machines)
+
+- Supprimer l'ancienne machine `ts-subnet-router` (hors ligne).
+- Sur `pve` : **Edit route settings** et approuver `192.168.137.0/24`.
+- Sur `pve` : **Disable key expiry**.
+
+## 9. Tester l'accès distant
+
+Depuis un PC avec Tailscale actif (sous Linux : `tailscale up --accept-routes`) :
+
+- `https://100.x.x.x:8006` (IP Tailscale de l'hôte)
+- `https://192.168.137.1:8006` (via la route de sous-réseau)
+
+Limites :
+
+- Le partage de connexion iPhone est en CGNAT : Tailscale passera souvent par ses relais (DERP), avec un peu plus de latence. Vérifie avec `tailscale status` et `tailscale netcheck`.
+- Si le réseau distant utilise aussi `192.168.137.0/24`, il y aura un conflit de routes.
+- Si le partage de connexion de l'iPhone se coupe, plus aucune machine n'a Internet.
+
+## 10. Recréer les VM et CT
+
+- **Bridge** : `vmbr0`, VLAN Tag vide.
+- **IP** : `192.168.137.x` (x différent pour chaque machine, à partir de `.2`).
+- **Masque** : `255.255.255.0`
+- **Passerelle** : `192.168.137.1`
+- **DNS** : `1.1.1.1`
+- **OPNsense** : WAN en IP fixe sur `vmbr0` (passerelle `192.168.137.1`), VLANs sur `vmbr1`.
+- **Accès au GUI d'OPNsense depuis la WAN** : décocher *Block private networks* sur l'interface WAN et créer une règle Pass en TCP vers le port 443 (source `192.168.137.0/24`, destination *This Firewall*).
+
+## 11. Commandes de diagnostic utiles
+
+```
+ip -br a                                # adresses des interfaces
+ip route                                # table de routage
+bridge link show master vmbr0           # machines branchées sur vmbr0 (tap / veth)
+qm list ; pct list                      # VM et CT
+iptables -t nat -L POSTROUTING -n -v    # règle de NAT
+tailscale status                        # état de Tailscale
+tailscale netcheck                      # test des relais
+```
+
+Règle à retenir : après un changement de bridge, **redémarre l'hôte**, pas de `ifreload -a` à chaud.
